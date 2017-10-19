@@ -18,6 +18,7 @@ package id.sch.smktelkom_mlg.learn.xiirpl129.media_playback;
 
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
@@ -29,6 +30,7 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.exoplayer2.DefaultLoadControl;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -71,6 +73,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
 
         // Initialize the player view.
+        mPlayerView = (SimpleExoPlayerView) findViewById(R.id.playerView);
 
 
         boolean isNewGame = !getIntent().hasExtra(REMAINING_SONGS_KEY);
@@ -93,7 +96,8 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         mAnswerSampleID = QuizUtils.getCorrectAnswerID(mQuestionSampleIDs);
 
         // Load the question mark as the background image until the user answers the question.
-
+        mPlayerView.setDefaultArtwork(BitmapFactory.decodeResource
+                (getResources(), R.drawable.question_mark));
 
         // If there is only one answer left, end the game.
         if (mQuestionSampleIDs.size() < 2) {
@@ -105,6 +109,17 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         mButtons = initializeButtons(mQuestionSampleIDs);
 
         // Initialize the Media Session.
+        Sample answerSample = Sample.getSampleByID(this, mAnswerSampleID);
+
+        if (answerSample == null) {
+            Toast.makeText(this, getString(R.string.sample_not_found_error),
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Initialize the player.
+        initializePlayer(Uri.parse(answerSample.getUri()));
+
 
 
     }
@@ -176,7 +191,6 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
 
     /**
      * Initialize ExoPlayer.
-     *
      * @param mediaUri The URI of the sample to play.
      */
     private void initializePlayer(Uri mediaUri) {
@@ -256,7 +270,7 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-
+                mExoPlayer.stop();
                 Intent nextQuestionIntent = new Intent(QuizActivity.this, QuizActivity.class);
                 nextQuestionIntent.putExtra(REMAINING_SONGS_KEY, mRemainingSampleIDs);
                 finish();
@@ -294,6 +308,12 @@ public class QuizActivity extends AppCompatActivity implements View.OnClickListe
     /**
      * Release the player when the activity is destroyed.
      */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        releasePlayer();
+
+    }
 
 
     // ExoPlayer Event Listeners
